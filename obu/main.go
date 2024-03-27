@@ -57,8 +57,6 @@ func main() {
 		}
 		time.Sleep(sendInterval * time.Second)
 
-		fmt.Println(genCoord())
-
 	}
 
 }
