@@ -2,18 +2,18 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/pyrolass/golang-microservice/entities"
 )
 
-type OBUData struct {
-	OBUID int     `json:"obu_id"`
-	Lat   float64 `json:"lat"`
-	Lon   float64 `json:"lon"`
-}
-
 const sendInterval = 4
+
+const wsEndpoint = "ws://localhost:8080/ws"
 
 func genCoord() float64 {
 	n := rand.Intn(100) + 1
@@ -29,21 +29,31 @@ func genLoc() (float64, float64) {
 
 func main() {
 
-	obuIds := generateOBUIds(20)
-
 	for {
+
+		obuIds := generateOBUIds(20)
+
+		conn, _, err := websocket.DefaultDialer.Dial(wsEndpoint, nil)
+
+		if err != nil {
+			log.Fatal("dial:", err)
+		}
 
 		for i := 0; i < len(obuIds); i++ {
 
 			lat, long := genLoc()
 
-			data := OBUData{
+			data := entities.OBUData{
 				OBUID: obuIds[i],
 				Lat:   lat,
 				Lon:   long,
 			}
 
-			fmt.Println(data)
+			if err := conn.WriteJSON(data); err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Printf("OBU ID: %d, Lat: %f, Lon: %f\n", data.OBUID, data.Lat, data.Lon)
 		}
 		time.Sleep(sendInterval * time.Second)
 
