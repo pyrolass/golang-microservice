@@ -5,11 +5,43 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/gorilla/websocket"
 	"github.com/pyrolass/golang-microservice/entities"
 )
 
+const kafkaTopic = "obu-data"
+
 func main() {
+
+	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
+	if err != nil {
+		panic(err)
+	}
+
+	defer p.Close()
+
+	// Delivery report handler for produced messages
+	go func() {
+		for e := range p.Events() {
+			switch ev := e.(type) {
+			case *kafka.Message:
+				if ev.TopicPartition.Error != nil {
+					fmt.Printf("Delivery failed: %v\n", ev.TopicPartition)
+				} else {
+					fmt.Printf("Delivered message to %v\n", ev.TopicPartition)
+				}
+			}
+		}
+	}()
+
+	// Produce messages to topic (asynchronously)
+	topic := kafkaTopic
+
+	p.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+		Value:          []byte("test producing data"),
+	}, nil)
 
 	recv := NewDataReceiver()
 
@@ -26,7 +58,7 @@ type DataReceiver struct {
 
 func NewDataReceiver() *DataReceiver {
 	return &DataReceiver{
-		msgch: make(chan entities.OBUData),
+		msgch: make(chan entities.OBUData, 128),
 	}
 }
 
@@ -62,6 +94,6 @@ func (dr *DataReceiver) wsReceiveLoop() {
 		}
 
 		fmt.Printf("OBU ID: %d, Lat: %f, Lon: %f\n", data.OBUID, data.Lat, data.Lon)
-		dr.msgch <- data
+		// dr.msgch <- data
 	}
 }
