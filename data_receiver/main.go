@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,12 +15,28 @@ const kafkaTopic = "obu-data"
 
 func main() {
 
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost:9092"})
+	// Produce messages to topic (asynchronously)
+
+	recv, err := NewDataReceiver()
+
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	defer p.Close()
+	http.HandleFunc("/ws", recv.handleWS)
+	http.ListenAndServe(":8080", nil)
+
+	fmt.Println("Hello, World!")
+}
+
+type DataReceiver struct {
+	msgch chan entities.OBUData
+	conn  *websocket.Conn
+	prod  *kafka.Producer
+}
+
+func NewDataReceiver() (*DataReceiver, error) {
+	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost:9092"})
 
 	// Delivery report handler for produced messages
 	go func() {
@@ -35,31 +52,37 @@ func main() {
 		}
 	}()
 
-	// Produce messages to topic (asynchronously)
-	topic := kafkaTopic
+	if err != nil {
+		return nil, err
+	}
 
-	p.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Value:          []byte("test producing data"),
-	}, nil)
-
-	recv := NewDataReceiver()
-
-	http.HandleFunc("/ws", recv.handleWS)
-	http.ListenAndServe(":8080", nil)
-
-	fmt.Println("Hello, World!")
-}
-
-type DataReceiver struct {
-	msgch chan entities.OBUData
-	conn  *websocket.Conn
-}
-
-func NewDataReceiver() *DataReceiver {
 	return &DataReceiver{
 		msgch: make(chan entities.OBUData, 128),
+		prod:  p,
+	}, nil
+}
+
+func (dr *DataReceiver) produceData(data entities.OBUData) error {
+
+	b, err := json.Marshal(data)
+
+	if err != nil {
+		return err
 	}
+
+	topic := kafkaTopic
+
+	err = dr.prod.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+		Value:          b,
+	}, nil)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func (dr *DataReceiver) handleWS(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +116,10 @@ func (dr *DataReceiver) wsReceiveLoop() {
 			continue
 		}
 
-		fmt.Printf("OBU ID: %d, Lat: %f, Lon: %f\n", data.OBUID, data.Lat, data.Lon)
-		// dr.msgch <- data
+		err = dr.produceData(data)
+
+		if err != nil {
+			fmt.Printf("kafka produce error: %v\n", err)
+		}
 	}
 }
