@@ -54,14 +54,12 @@ func (c *KafkaConsumer) readMessageLoop() {
 			continue
 		}
 
-		distance, err := c.calcService.CalculateDistance(obuData)
+		_, err = c.calcService.CalculateDistance(obuData)
 
 		if err != nil {
 			logrus.Errorf("Error calculating distance: %v", err)
 			continue
 		}
-
-		logrus.Infof("Distance calculated: %v", distance)
 
 	}
 }

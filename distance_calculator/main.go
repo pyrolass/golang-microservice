@@ -11,6 +11,7 @@ const kafkaTopic = "obu-data"
 func main() {
 
 	calcService := NewCalculatorService()
+	calcService = NewLogMiddleware(calcService)
 
 	KafkaConsumer, err := NewKafkaConsumer(kafkaTopic, calcService)
 

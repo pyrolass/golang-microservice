@@ -11,7 +11,7 @@ import (
 	"github.com/pyrolass/golang-microservice/entities"
 )
 
-const sendInterval = 4
+const sendInterval = 20
 
 const wsEndpoint = "ws://localhost:8080/ws"
 
