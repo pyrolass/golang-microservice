@@ -10,7 +10,9 @@ const kafkaTopic = "obu-data"
 
 func main() {
 
-	KafkaConsumer, err := NewKafkaConsumer(kafkaTopic)
+	calcService := NewCalculatorService()
+
+	KafkaConsumer, err := NewKafkaConsumer(kafkaTopic, calcService)
 
 	if err != nil {
 		logrus.Fatalf("Error creating Kafka Consumer: %v", err)

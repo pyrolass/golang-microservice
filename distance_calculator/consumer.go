@@ -1,16 +1,20 @@
 package main
 
 import (
+	"encoding/json"
+
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/pyrolass/golang-microservice/entities"
 	"github.com/sirupsen/logrus"
 )
 
 type KafkaConsumer struct {
-	consumer  *kafka.Consumer
-	isRunning bool
+	consumer    *kafka.Consumer
+	isRunning   bool
+	calcService CalculatorServiceInterface
 }
 
-func NewKafkaConsumer(topic string) (*KafkaConsumer, error) {
+func NewKafkaConsumer(topic string, cs CalculatorServiceInterface) (*KafkaConsumer, error) {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost:9092",
 		"auto.offset.reset": "earliest",
@@ -23,7 +27,7 @@ func NewKafkaConsumer(topic string) (*KafkaConsumer, error) {
 		return nil, err
 	}
 
-	return &KafkaConsumer{consumer: c}, nil
+	return &KafkaConsumer{consumer: c, calcService: cs}, nil
 }
 
 func (c *KafkaConsumer) Start() {
@@ -43,7 +47,21 @@ func (c *KafkaConsumer) readMessageLoop() {
 			continue
 		}
 
-		logrus.Infof("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
+		var obuData entities.OBUData
+
+		if err := json.Unmarshal(msg.Value, &obuData); err != nil {
+			logrus.Errorf("Error unmarshalling OBU data: %v", err)
+			continue
+		}
+
+		distance, err := c.calcService.CalculateDistance(obuData)
+
+		if err != nil {
+			logrus.Errorf("Error calculating distance: %v", err)
+			continue
+		}
+
+		logrus.Infof("Distance calculated: %v", distance)
 
 	}
 }
