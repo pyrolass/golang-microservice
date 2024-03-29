@@ -11,11 +11,13 @@ import (
 
 func main() {
 
-	listenAddr := flag.String("listen-addr", ":8081", "server listen address")
+	listenAddr := flag.String("listen-addr", ":3000", "server listen address")
 
 	store := NewMemoryStore()
 
 	aggregator := NewInvoiceAggregator(store)
+
+	aggregator = NewLogMiddleware(aggregator)
 
 	makeHttpTransport(*listenAddr, aggregator)
 
@@ -36,10 +38,24 @@ func handleAggregation(aggregator AggregatorInterface) http.HandlerFunc {
 		var distance entities.Distance
 
 		if err := json.NewDecoder(r.Body).Decode(&distance); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			writeJson(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+			return
+		}
+
+		err := aggregator.AggregateDistance(distance)
+
+		if err != nil {
+			logrus.Errorf("Error aggregating distance: %s", err)
+			writeJson(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 			return
 		}
 
 	}
 
+}
+
+func writeJson(rw http.ResponseWriter, status int, v any) error {
+	rw.WriteHeader(status)
+	rw.Header().Add("Content-Type", "application/json")
+	return json.NewEncoder(rw).Encode(v)
 }
