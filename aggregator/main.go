@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"net"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/pyrolass/golang-microservice/aggregator/client"
 	"github.com/pyrolass/golang-microservice/entities"
 	types "github.com/pyrolass/golang-microservice/proto_types"
 	"github.com/sirupsen/logrus"
@@ -24,7 +27,33 @@ func main() {
 
 	aggregator = NewLogMiddleware(aggregator)
 
-	go makeGRPCTransport(*grpcListenAddr, aggregator)
+	go func() {
+		err := makeGRPCTransport(*grpcListenAddr, aggregator)
+
+		if err != nil {
+			logrus.Fatalf("Error creating GRPC transport: %v", err)
+		}
+
+		time.Sleep(5 * time.Second)
+
+		c, err := client.NewGRPCClient(*grpcListenAddr)
+
+		if err != nil {
+			logrus.Fatalf("Error creating GRPC client: %v", err)
+		}
+
+		_, err = c.Aggregate(context.Background(), &types.AggregateRequest{
+			ObuID: 1,
+			Value: 10.1,
+			Unix:  time.Now().UnixNano(),
+		})
+
+		if err != nil {
+			logrus.Fatalf("Error calling GRPC client: %v", err)
+		}
+
+	}()
+
 	makeHttpTransport(*listenAddr, aggregator)
 
 }
@@ -42,7 +71,7 @@ func makeGRPCTransport(listenAddr string, aggregator AggregatorInterface) error 
 
 	defer ln.Close()
 	// make grpc server
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 
 	// register the server
 	types.RegisterAggregatorServer(grpcServer, NewGRPCAggregatorServer(aggregator))

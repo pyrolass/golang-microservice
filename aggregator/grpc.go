@@ -16,11 +16,11 @@ func NewGRPCAggregatorServer(svc AggregatorInterface) *GRPCServer {
 	return &GRPCServer{scv: svc}
 }
 
-func (s *GRPCServer) GRPCAggregateDistance(ctx context.Context, req *types.AggregateRequest) error {
+func (s *GRPCServer) Aggregate(ctx context.Context, req *types.AggregateRequest) (*types.None, error) {
 	distance := entities.Distance{
 		OBUID: int(req.ObuID),
 		Value: req.Value,
 		Unix:  req.Unix,
 	}
-	return s.scv.AggregateDistance(distance)
+	return &types.None{}, s.scv.AggregateDistance(distance)
 }

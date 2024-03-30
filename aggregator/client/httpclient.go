@@ -8,17 +8,17 @@ import (
 	"github.com/pyrolass/golang-microservice/entities"
 )
 
-type Client struct {
+type HttpClient struct {
 	Endpoint string
 }
 
-func NewClient(endpoint string) *Client {
-	return &Client{
+func NewHttpClient(endpoint string) *HttpClient {
+	return &HttpClient{
 		Endpoint: endpoint,
 	}
 }
 
-func (c *Client) AggregateInvoice(data entities.Distance) error {
+func (c *HttpClient) AggregateInvoice(data entities.Distance) error {
 
 	b, err := json.Marshal(data)
 

@@ -17,7 +17,7 @@ func main() {
 	calcService := NewCalculatorService()
 	calcService = NewLogMiddleware(calcService)
 
-	client := client.NewClient(aggregatorURL)
+	client := client.NewHttpClient(aggregatorURL)
 
 	KafkaConsumer, err := NewKafkaConsumer(kafkaTopic, calcService, client)
 

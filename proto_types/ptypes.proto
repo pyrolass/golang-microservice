@@ -3,7 +3,7 @@ syntax = "proto3";
 option go_package = "github.com/pyrolass/golang-microservice/tolling/types";
 
 service Aggregator{
-    rpc Aggregator(AggregateRequest) returns (None);
+    rpc Aggregate(AggregateRequest) returns (None);
 }
 
 message None{}
