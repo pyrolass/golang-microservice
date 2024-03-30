@@ -3,16 +3,20 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"net"
 	"net/http"
 	"strconv"
 
 	"github.com/pyrolass/golang-microservice/entities"
+	types "github.com/pyrolass/golang-microservice/proto_types"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 )
 
 func main() {
 
 	listenAddr := flag.String("listen-addr", ":3000", "server listen address")
+	grpcListenAddr := flag.String("grpc-addr", ":3001", "server listen address")
 
 	store := NewMemoryStore()
 
@@ -20,7 +24,30 @@ func main() {
 
 	aggregator = NewLogMiddleware(aggregator)
 
+	go makeGRPCTransport(*grpcListenAddr, aggregator)
 	makeHttpTransport(*listenAddr, aggregator)
+
+}
+
+func makeGRPCTransport(listenAddr string, aggregator AggregatorInterface) error {
+	// make the tcp
+	logrus.Infof("GRPC transport starting on %s", listenAddr)
+
+	ln, err := net.Listen("tcp", listenAddr)
+
+	if err != nil {
+		logrus.Fatalf("Failed to listen: %v", err)
+		return err
+	}
+
+	defer ln.Close()
+	// make grpc server
+	grpcServer := grpc.NewServer()
+
+	// register the server
+	types.RegisterAggregatorServer(grpcServer, NewGRPCAggregatorServer(aggregator))
+
+	return grpcServer.Serve(ln)
 
 }
 

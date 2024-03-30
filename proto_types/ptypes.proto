@@ -2,13 +2,13 @@ syntax = "proto3";
 
 option go_package = "github.com/pyrolass/golang-microservice/tolling/types";
 
-service DistanceAggregator{
-    rpc AggregatorDistance(AggregateDistanceRequest) returns (None);
+service Aggregator{
+    rpc Aggregator(AggregateRequest) returns (None);
 }
 
 message None{}
 
-message AggregateDistanceRequest{
+message AggregateRequest{
     int32 ObuID = 1;
     double Value = 2;
     int64 Unix = 3;
