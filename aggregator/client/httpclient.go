@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/pyrolass/golang-microservice/entities"
 	types "github.com/pyrolass/golang-microservice/proto_types"
 )
 
@@ -27,7 +28,7 @@ func (c *HttpClient) Aggregate(ctx context.Context, data *types.AggregateRequest
 		return err
 	}
 
-	req, err := http.NewRequest("POST", c.Endpoint, bytes.NewReader(b))
+	req, err := http.NewRequest("POST", c.Endpoint+"/aggregate", bytes.NewReader(b))
 
 	if err != nil {
 		return err
@@ -48,5 +49,46 @@ func (c *HttpClient) Aggregate(ctx context.Context, data *types.AggregateRequest
 	}
 
 	return nil
+
+}
+
+func (c *HttpClient) GetInvoice(ctx context.Context, id int) (*entities.Invoice, error) {
+
+	invReq := types.GetInvoicerequest{
+		ObuID: int32(id),
+	}
+	b, err := json.Marshal(&invReq)
+
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", c.Endpoint+"/invoice", bytes.NewReader(b))
+
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+
+	// resp, err := httpc.Do(req)
+
+	resp, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, err
+	}
+
+	var inv entities.Invoice
+
+	if err := json.NewDecoder(resp.Body).Decode(&inv); err != nil {
+		return nil, err
+	}
+
+	return &inv, nil
 
 }

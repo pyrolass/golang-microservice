@@ -10,21 +10,21 @@ import (
 // }
 
 const kafkaTopic = "obu-data"
-const aggregatorURL = "http://localhost:3000/aggregate"
+const aggregatorURL = "http://localhost:3000"
 
 func main() {
 
 	calcService := NewCalculatorService()
 	calcService = NewLogMiddleware(calcService)
 
-	// httpClient := client.NewHttpClient(aggregatorURL)
-	grpcClient, err := client.NewGRPCClient(aggregatorURL)
+	httpClient := client.NewHttpClient(aggregatorURL)
+	// grpcClient, err := client.NewGRPCClient(aggregatorURL)
 
-	if err != nil {
-		logrus.Fatalf("Error creating GRPC Client: %v", err)
-	}
+	// if err != nil {
+	// 	logrus.Fatalf("Error creating GRPC Client: %v", err)
+	// }
 
-	KafkaConsumer, err := NewKafkaConsumer(kafkaTopic, calcService, grpcClient)
+	KafkaConsumer, err := NewKafkaConsumer(kafkaTopic, calcService, httpClient)
 
 	if err != nil {
 		logrus.Fatalf("Error creating Kafka Consumer: %v", err)

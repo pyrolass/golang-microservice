@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/pyrolass/golang-microservice/entities"
 	types "github.com/pyrolass/golang-microservice/proto_types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -30,4 +31,10 @@ func (c *GRPCClient) Aggregate(ctx context.Context, req *types.AggregateRequest)
 	_, err := c.client.Aggregate(ctx, req)
 
 	return err
+}
+func (c *GRPCClient) GetInvoice(ctx context.Context, id int) (*entities.Invoice, error) {
+
+	return &entities.Invoice{
+		OBUID: id,
+	}, nil
 }
