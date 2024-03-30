@@ -7,17 +7,19 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/pyrolass/golang-microservice/aggregator/client"
 	"github.com/pyrolass/golang-microservice/entities"
+	types "github.com/pyrolass/golang-microservice/proto_types"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 )
 
 type KafkaConsumer struct {
 	consumer    *kafka.Consumer
 	isRunning   bool
 	calcService CalculatorServiceInterface
-	aggClient   *client.HttpClient
+	aggClient   client.Client
 }
 
-func NewKafkaConsumer(topic string, cs CalculatorServiceInterface, aggClient *client.HttpClient) (*KafkaConsumer, error) {
+func NewKafkaConsumer(topic string, cs CalculatorServiceInterface, aggClient client.Client) (*KafkaConsumer, error) {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost:9092",
 		"auto.offset.reset": "earliest",
@@ -64,13 +66,13 @@ func (c *KafkaConsumer) readMessageLoop() {
 			continue
 		}
 
-		req := entities.Distance{
-			OBUID: obuData.OBUID,
+		req := &types.AggregateRequest{
+			ObuID: int32(obuData.OBUID),
 			Value: distance,
 			Unix:  time.Now().Unix(),
 		}
 
-		if err := c.aggClient.AggregateInvoice(req); err != nil {
+		if err := c.aggClient.Aggregate(context.Background(), req); err != nil {
 			logrus.Errorf("Error aggregating invoice: %v", err)
 			continue
 		}

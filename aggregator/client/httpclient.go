@@ -2,10 +2,11 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 
-	"github.com/pyrolass/golang-microservice/entities"
+	types "github.com/pyrolass/golang-microservice/proto_types"
 )
 
 type HttpClient struct {
@@ -18,7 +19,7 @@ func NewHttpClient(endpoint string) *HttpClient {
 	}
 }
 
-func (c *HttpClient) AggregateInvoice(data entities.Distance) error {
+func (c *HttpClient) Aggregate(ctx context.Context, data *types.AggregateRequest) error {
 
 	b, err := json.Marshal(data)
 
