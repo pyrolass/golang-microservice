@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/pyrolass/golang-microservice/entities"
@@ -63,7 +64,9 @@ func (c *HttpClient) GetInvoice(ctx context.Context, id int) (*entities.Invoice,
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.Endpoint+"/invoice", bytes.NewReader(b))
+	endpoint := fmt.Sprintf("%s/invoice?obuId=%d", c.Endpoint, id)
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(b))
 
 	if err != nil {
 		return nil, err

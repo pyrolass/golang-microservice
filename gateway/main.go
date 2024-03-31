@@ -10,20 +10,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const aggrEndpoint = "http://localhost:3000"
+
 type apiFunc func(w http.ResponseWriter, r *http.Request) error
 
 func main() {
-	listenAddr := flag.String("listen-addr", ":8080", "server listen address")
+	listenAddr := flag.String("listen-addr", ":8081", "server listen address")
 
 	flag.Parse()
 
-	client := client.NewHttpClient("http://localhost:3000")
+	client := client.NewHttpClient(aggrEndpoint)
 
 	h := NewInvoiceHandler(client)
 
 	http.HandleFunc("/invoice", makeApiFunc(h.handleGetInvoice))
-	logrus.Infof("HTTP transport starting on :8080")
-	http.ListenAndServe(*listenAddr, nil)
+	logrus.Infof("HTTP transport starting on :8081")
+	err := http.ListenAndServe(*listenAddr, nil)
+
+	if err != nil {
+		logrus.Fatalf("Failed to start server: %v", err)
+	}
 
 }
 
