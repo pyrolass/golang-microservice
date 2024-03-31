@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/pyrolass/golang-microservice/entities"
 	types "github.com/pyrolass/golang-microservice/proto_types"
 	"github.com/sirupsen/logrus"
@@ -63,6 +64,7 @@ func makeHttpTransport(listenAddr string, aggregator AggregatorInterface) {
 	logrus.Infof("HTTP transport starting on %s", listenAddr)
 	http.HandleFunc("/aggregate", handleAggregation(aggregator))
 	http.HandleFunc("/invoice", handleGetInvoice(aggregator))
+	http.Handle("/metrics", promhttp.Handler())
 
 	http.ListenAndServe(listenAddr, nil)
 
